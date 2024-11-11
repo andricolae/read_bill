@@ -11,6 +11,10 @@
     <input type="file" id="imageUpload" accept="image/*">
     <br><br>
 
+    <!-- Buton pentru declanșarea OCR-ului -->
+    <button id="recognizeButton">Recunoaște Text</button>
+    <br><br>
+
     <!-- Afișarea textului extras -->
     <h3>Textul extras:</h3>
     <pre id="output"></pre>
@@ -22,45 +26,55 @@
     <!-- Scriptul principal -->
     <script>
         const imageUpload = document.getElementById('imageUpload');
+        const recognizeButton = document.getElementById('recognizeButton');
         const output = document.getElementById('output');
+        let uploadedImage = null;
 
-        // Eveniment la încărcarea unei imagini
+        // Stocăm imaginea încărcată pentru procesare ulterioară
         imageUpload.addEventListener('change', event => {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
-
                 reader.onload = function(e) {
-                    // Creăm o imagine temporară din fișierul încărcat
-                    const img = new Image();
-                    img.src = e.target.result;
-
-                    img.onload = function() {
-                        // Cream un canvas temporar pentru capturarea imaginii
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        const context = canvas.getContext('2d');
-                        context.drawImage(img, 0, 0, img.width, img.height);
-
-                        // Convertim canvas-ul în blob și trimitem la Tesseract
-                        canvas.toBlob(blob => {
-                            Tesseract.recognize(
-                                blob,
-                                'ron', // Limba română; poți schimba în 'eng' pentru engleză
-                                { logger: m => console.log(m) }
-                            ).then(({ data: { text } }) => {
-                                output.textContent = text;
-                            })
-                            .catch(err => {
-                                console.error("Eroare la OCR:", err);
-                            });
-                        }, 'image/png');
-                    };
+                    uploadedImage = e.target.result;
                 };
-
                 reader.readAsDataURL(file);
             }
+        });
+
+        // Eveniment la apăsarea butonului „Recunoaște Text”
+        recognizeButton.addEventListener('click', () => {
+            if (!uploadedImage) {
+                alert("Vă rugăm să încărcați o imagine înainte de a încerca recunoașterea.");
+                return;
+            }
+
+            // Creăm o imagine temporară din fișierul încărcat
+            const img = new Image();
+            img.src = uploadedImage;
+
+            img.onload = function() {
+                // Cream un canvas temporar pentru capturarea imaginii
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const context = canvas.getContext('2d');
+                context.drawImage(img, 0, 0, img.width, img.height);
+
+                // Convertim canvas-ul în blob și trimitem la Tesseract
+                canvas.toBlob(blob => {
+                    Tesseract.recognize(
+                        blob,
+                        'ron', // Limba română; poți schimba în 'eng' pentru engleză
+                        { logger: m => console.log(m) }
+                    ).then(({ data: { text } }) => {
+                        output.textContent = text;
+                    })
+                    .catch(err => {
+                        console.error("Eroare la OCR:", err);
+                    });
+                }, 'image/png');
+            };
         });
     </script>
 </body>
