@@ -7,12 +7,8 @@
 <body>
     <h1>Scanare Bon de Cumpărături</h1>
 
-    <!-- Elementul video pentru afișarea fluxului de la cameră -->
-    <video id="video" width="300" height="400" autoplay></video>
-    <br>
-
-    <!-- Buton pentru capturarea imaginii -->
-    <button id="capture">Capturează Imaginea</button>
+    <!-- Input pentru încărcarea unei imagini -->
+    <input type="file" id="imageUpload" accept="image/*">
     <br><br>
 
     <!-- Afișarea textului extras -->
@@ -25,52 +21,46 @@
 
     <!-- Scriptul principal -->
     <script>
-        const video = document.getElementById('video');
-        const captureButton = document.getElementById('capture');
+        const imageUpload = document.getElementById('imageUpload');
         const output = document.getElementById('output');
 
-        // Setăm constrângerile pentru a folosi camera de pe spate
-        const constraints = {
-            video: {
-                facingMode: { exact: "environment" } // Utilizează camera de pe spate
+        // Eveniment la încărcarea unei imagini
+        imageUpload.addEventListener('change', event => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    // Creăm o imagine temporară din fișierul încărcat
+                    const img = new Image();
+                    img.src = e.target.result;
+
+                    img.onload = function() {
+                        // Cream un canvas temporar pentru capturarea imaginii
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const context = canvas.getContext('2d');
+                        context.drawImage(img, 0, 0, img.width, img.height);
+
+                        // Convertim canvas-ul în blob și trimitem la Tesseract
+                        canvas.toBlob(blob => {
+                            Tesseract.recognize(
+                                blob,
+                                'ron', // Limba română; poți schimba în 'eng' pentru engleză
+                                { logger: m => console.log(m) }
+                            ).then(({ data: { text } }) => {
+                                output.textContent = text;
+                            })
+                            .catch(err => {
+                                console.error("Eroare la OCR:", err);
+                            });
+                        }, 'image/png');
+                    };
+                };
+
+                reader.readAsDataURL(file);
             }
-        };
-
-        // Cerem acces la camera video
-        navigator.mediaDevices.getUserMedia(constraints)
-            .then(stream => {
-                video.srcObject = stream;
-                video.play();
-            })
-            .catch(error => {
-                console.error("Eroare la accesarea camerei:", error);
-                alert("Nu am putut accesa camera de pe spate.");
-            });
-
-        // Eveniment la apăsarea butonului de captură
-        captureButton.addEventListener('click', () => {
-            // Cream un canvas temporar pentru capturarea imaginii
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const context = canvas.getContext('2d');
-
-            // Desenăm cadrul curent din video în canvas
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            // Convertim canvas-ul în blob și trimitem la Tesseract
-            canvas.toBlob(blob => {
-                Tesseract.recognize(
-                    blob,
-                    'ron', // Limba română; poți schimba în 'eng' pentru engleză
-                    { logger: m => console.log(m) }
-                ).then(({ data: { text } }) => {
-                    output.textContent = text;
-                })
-                .catch(err => {
-                    console.error("Eroare la OCR:", err);
-                });
-            }, 'image/png');
         });
     </script>
 </body>
