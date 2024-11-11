@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanare Bon Simplă</title>
+</head>
+<body>
+    <h2>Aplicatie Simplă pentru Scanarea Bonului</h2>
+    <video id="camera" autoplay></video>
+    <canvas id="canvas" style="display: none;"></canvas>
+    <button id="capture">Capturează și Citește</button>
+    <p id="result"></p>
+
+    <!-- Tesseract.js pentru OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.1/dist/tesseract.min.js"></script>
+    <script>
+        const video = document.getElementById('camera');
+        const canvas = document.getElementById('canvas');
+        const result = document.getElementById('result');
+        const captureButton = document.getElementById('capture');
+        const context = canvas.getContext('2d');
+
+        // Accesarea camerei
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Eroare la accesarea camerei: ", err);
+            });
+
+        // Când se apasă butonul, face o poză și folosește OCR
+        captureButton.addEventListener('click', () => {
+            // Setăm dimensiunea canvas-ului la dimensiunea video-ului
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Desenăm cadrul video pe canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Obținem imaginea sub formă de URL data-uri pentru OCR
+            const imageData = canvas.toDataURL('image/png');
+
+            // Aplicăm OCR pe imagine
+            Tesseract.recognize(
+                imageData,
+                'eng',
+                {
+                    logger: m => console.log(m) // pentru a vedea progresul în consolă
+                }
+            ).then(({ data: { text } }) => {
+                // Afișăm textul recunoscut
+                result.textContent = `Textul detectat: ${text}`;
+            }).catch(err => {
+                console.error("Eroare la procesarea imaginii: ", err);
+            });
+        });
+    </script>
+</body>
+</html>
