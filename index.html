@@ -28,53 +28,34 @@
         const imageUpload = document.getElementById('imageUpload');
         const recognizeButton = document.getElementById('recognizeButton');
         const output = document.getElementById('output');
-        let uploadedImage = null;
+        let uploadedImageUrl = null;
 
-        // Stocăm imaginea încărcată pentru procesare ulterioară
+        // Stocăm URL-ul imaginii încărcate pentru procesare ulterioară
         imageUpload.addEventListener('change', event => {
             const file = event.target.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    uploadedImage = e.target.result;
-                };
-                reader.readAsDataURL(file);
+                uploadedImageUrl = URL.createObjectURL(file); // Obținem URL-ul imaginii încărcate
             }
         });
 
         // Eveniment la apăsarea butonului „Recunoaște Text”
         recognizeButton.addEventListener('click', () => {
-            if (!uploadedImage) {
+            if (!uploadedImageUrl) {
                 alert("Vă rugăm să încărcați o imagine înainte de a încerca recunoașterea.");
                 return;
             }
 
-            // Creăm o imagine temporară din fișierul încărcat
-            const img = new Image();
-            img.src = uploadedImage;
-
-            img.onload = function() {
-                // Cream un canvas temporar pentru capturarea imaginii
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const context = canvas.getContext('2d');
-                context.drawImage(img, 0, 0, img.width, img.height);
-
-                // Convertim canvas-ul în blob și trimitem la Tesseract
-                canvas.toBlob(blob => {
-                    Tesseract.recognize(
-                        blob,
-                        'ron', // Limba română; poți schimba în 'eng' pentru engleză
-                        { logger: m => console.log(m) }
-                    ).then(({ data: { text } }) => {
-                        output.textContent = text;
-                    })
-                    .catch(err => {
-                        console.error("Eroare la OCR:", err);
-                    });
-                }, 'image/png');
-            };
+            // Aplicăm OCR direct pe URL-ul imaginii încărcate
+            Tesseract.recognize(
+                uploadedImageUrl,
+                'ron', // Limba română; poți schimba în 'eng' pentru engleză
+                { logger: m => console.log(m) }
+            ).then(({ data: { text } }) => {
+                output.textContent = text; // Afișăm textul extras
+            })
+            .catch(err => {
+                console.error("Eroare la OCR:", err);
+            });
         });
     </script>
 </body>
